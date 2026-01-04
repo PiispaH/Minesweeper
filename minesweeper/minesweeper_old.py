@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 from random import randint
 from copy import deepcopy
 
@@ -162,7 +164,8 @@ def grid_manipulation(grid: np.ndarray, coordinates: tuple):
         for x in range(len(grid[y])):
             if grid[(y, x)] == 0 or grid[(y, x)] == 9:
                 if (block_size * (1 + x)) <= coordinates[0] < (block_size * (1 + x) + block_size) and block_size * (
-                        2 + y) <= coordinates[1] < block_size * (2 + y) + block_size:
+                    2 + y
+                ) <= coordinates[1] < block_size * (2 + y) + block_size:
                     if grid[(y, x)] == 0:
                         amount_of_nearby_mines = determine_block_state(x, y)
                         if amount_of_nearby_mines != 0:
@@ -186,6 +189,12 @@ def grid_manipulation(grid: np.ndarray, coordinates: tuple):
                 screen.blit(images[int(grid[(y, x)])], (block_size * (1 + x), block_size * (2 + y)))
 
     return game_state
+
+
+def run():
+    global grid
+    global click_location
+    global game_state
 
 
 while True:
@@ -219,8 +228,7 @@ while True:
         teksti = font_big.render("Hävisit!", True, (255, 0, 0))
         text3 = font_big.render("Uusi peli: space", True, (255, 0, 0))
         screen.blit(teksti, ((sreen_width - teksti.get_width()) / 2, (screen_height - teksti.get_height()) / 2))
-        screen.blit(text3,
-                    ((sreen_width - text3.get_width()) / 2, (200 + screen_height - text3.get_height()) / 2))
+        screen.blit(text3, ((sreen_width - text3.get_width()) / 2, (200 + screen_height - text3.get_height()) / 2))
         if new_game:
             grid = np.ndarray((16, 30))
             click_location = (-1, -1)
@@ -233,10 +241,8 @@ while True:
             font2 = pygame.font.SysFont("Helvetica", 100)
             text2 = font_big.render("You won!", True, (255, 0, 0))
             text3 = font_big.render("New game: space", True, (255, 0, 0))
-            screen.blit(text2,
-                        ((sreen_width - text2.get_width()) / 2, (screen_height - text2.get_height()) / 2))
-            screen.blit(text3,
-                        ((sreen_width - text3.get_width()) / 2, (200 + screen_height - text3.get_height()) / 2))
+            screen.blit(text2, ((sreen_width - text2.get_width()) / 2, (screen_height - text2.get_height()) / 2))
+            screen.blit(text3, ((sreen_width - text3.get_width()) / 2, (200 + screen_height - text3.get_height()) / 2))
 
             if new_game:
                 game_state = None
