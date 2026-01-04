@@ -1,26 +1,10 @@
 import os
-from typing import Tuple
-import numpy as np
-from dataclasses import dataclass
+from typing import Tuple, Union
 from numpy.typing import NDArray
-from enum import Enum
+from minesweeper.utils import Interaction, UIAction
 
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"  # Silence the stupid pygame import print...
 import pygame
-
-
-class UIAction(Enum):
-    OPEN = 0
-    FLAG = 1
-    EXIT = 2
-    NEW_GAME = 3
-
-
-@dataclass
-class Interaction:
-    x: int
-    y: int
-    action: UIAction
 
 
 class MinesweeperUI:
@@ -40,6 +24,7 @@ class MinesweeperUI:
         self._screen = pygame.display.set_mode((self._sreen_width, self._screen_height))
 
     def _map_pos_to_gridpoint(self, x: int, y: int) -> Tuple[int, int]:
+        """Returns the cell coordinates from pixel coordinates"""
         i = j = -1
         if (self._block_size < x < self._sreen_width - self._block_size) and (
             2 * self._block_size < y < self._screen_height - self._block_size
@@ -49,7 +34,7 @@ class MinesweeperUI:
 
         return i, j
 
-    def draw_frame(self, grid: NDArray):
+    def draw_frame(self, grid: NDArray) -> Union[Interaction, None]:
         """Draws one frame with the given grid"""
 
         self._screen.fill((10, 0, 0))
@@ -58,7 +43,10 @@ class MinesweeperUI:
 
         for j, row in enumerate(grid):
             for i, value in enumerate(row):
-                self._screen.blit(self._images[str(value)], ((1 + i) * self._block_size, (2 + j) * self._block_size))
+                key = value.num()
+                if key >= 9:
+                    key = value
+                self._screen.blit(self._images[str(key)], ((1 + i) * self._block_size, (2 + j) * self._block_size))
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -82,15 +70,3 @@ class MinesweeperUI:
                     return Interaction(-1, -1, UIAction.NEW_GAME)
 
         pygame.display.flip()
-
-
-def run():
-    ui = MinesweeperUI(30, 16)
-    grid = np.array([[0 for _ in range(30)] for y in range(16)])
-    grid[3][13] = 7
-    while True:
-        res = ui.draw_frame(grid)
-        if res:
-            print(res)
-            if res.action == UIAction.EXIT:
-                exit()
