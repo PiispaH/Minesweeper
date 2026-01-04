@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 
-from random import randint
 from copy import deepcopy
-
-import pygame
+from random import randint
 import numpy as np
+import pygame
 
 pygame.init()
 

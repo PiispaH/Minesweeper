@@ -1,8 +1,7 @@
 import unittest
 import numpy as np
 from numpy.typing import NDArray
-from minesweeper.minesweeper import Minesweeper
-from minesweeper.minesweeper import CellState
+from minesweeper.minefield import CellState, MineField
 
 
 class TestCellState(unittest.TestCase):
@@ -28,7 +27,7 @@ class TestMinesweeper(unittest.TestCase):
                 self.assertEqual(value, result[j][i])
 
     def test_init_mf(self):
-        mf = Minesweeper(4, 5, 8)
+        mf = MineField(4, 5, 8)
 
         W = CellState.WALL
         U = CellState.UNOPENED
@@ -48,7 +47,7 @@ class TestMinesweeper(unittest.TestCase):
 
     def test_minesweeper_mine_randomizer(self):
         np.random.seed(42)
-        mf = Minesweeper(4, 5, 8)
+        mf = MineField(4, 5, 8)
         mf._mine_randomizer(0, 0)
 
         W = CellState.WALL
@@ -70,7 +69,7 @@ class TestMinesweeper(unittest.TestCase):
 
     def test_neighbours(self):
         np.random.seed(41)
-        mf = Minesweeper(6, 4, 4)
+        mf = MineField(6, 4, 4)
         mf._mine_randomizer(0, 0)
 
         nbs = mf._neighbours(0, 0)
@@ -96,7 +95,7 @@ class TestMinesweeper(unittest.TestCase):
     def test_define_cell_values(self):
         print()
         np.random.seed(41)
-        mf = Minesweeper(6, 4, 4)
+        mf = MineField(6, 4, 4)
         mf._mine_randomizer(0, 0)
         mf._define_cell_values()
 

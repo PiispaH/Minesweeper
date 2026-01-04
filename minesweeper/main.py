@@ -1,9 +1,10 @@
 import typer
-from minesweeper.minesweeper import run
+from minesweeper.minesweeper import Minesweeper
 
 app = typer.Typer()
 
 
 @app.command()
-def mono():
-    run()
+def run():
+    ms = Minesweeper(30, 16, 99)
+    ms.run()
