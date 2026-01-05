@@ -21,7 +21,6 @@ class CellState(Enum):
     WALL = "wall"
 
     def __repr__(self) -> str:
-        """"""
         if self == CellState.MINE:
             s = "B"
         elif self == CellState.FLAG:

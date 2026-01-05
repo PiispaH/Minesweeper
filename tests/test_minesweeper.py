@@ -27,57 +27,23 @@ class TestMinesweeper(unittest.TestCase):
                 self.assertEqual(value, result[j][i])
 
     def test_init_mf(self):
-        mf = MineField(4, 5, 8)
-
-        W = CellState.WALL
-        U = CellState.UNOPENED
-
-        expected = np.array(
-            [
-                [W, W, W, W, W, W],
-                [W, U, U, U, U, W],
-                [W, U, U, U, U, W],
-                [W, U, U, U, U, W],
-                [W, U, U, U, U, W],
-                [W, U, U, U, U, W],
-                [W, W, W, W, W, W],
-            ]
-        )
-        self.assert_arrays_equal(expected, mf._mf)
-
-    def test_minesweeper_mine_randomizer(self):
         np.random.seed(42)
+
         mf = MineField(4, 5, 8)
-        mf._mine_randomizer(0, 0)
 
-        W = CellState.WALL
-        U = CellState.UNOPENED
-        M = CellState.MINE
-
-        expected = np.array(
-            [
-                [W, W, W, W, W, W],
-                [W, U, U, U, U, W],
-                [W, M, M, U, U, W],
-                [W, M, U, M, M, W],
-                [W, U, U, U, U, W],
-                [W, M, M, M, U, W],
-                [W, W, W, W, W, W],
-            ]
-        )
-        self.assert_arrays_equal(expected, mf._mf)
+        self.assertRaises(AttributeError, lambda: mf._mf)
 
     def test_neighbours(self):
         np.random.seed(41)
         mf = MineField(6, 4, 4)
-        mf._mine_randomizer(0, 0)
+        mf.new_minefield(0, 0)
 
         nbs = mf._neighbours(0, 0)
         res = np.array(
             [
                 [CellState.WALL, CellState.WALL, CellState.WALL],
-                [CellState.WALL, CellState.UNOPENED, CellState.UNOPENED],
-                [CellState.WALL, CellState.UNOPENED, CellState.UNOPENED],
+                [CellState.WALL, CellState.CELL_0, CellState.CELL_0],
+                [CellState.WALL, CellState.CELL_0, CellState.CELL_1],
             ]
         )
         self.assert_arrays_equal(nbs, res)
@@ -85,8 +51,8 @@ class TestMinesweeper(unittest.TestCase):
         nbs = mf._neighbours(5, 3)
         res = np.array(
             [
-                [CellState.UNOPENED, CellState.UNOPENED, CellState.WALL],
-                [CellState.UNOPENED, CellState.UNOPENED, CellState.WALL],
+                [CellState.MINE, CellState.CELL_1, CellState.WALL],
+                [CellState.CELL_3, CellState.CELL_1, CellState.WALL],
                 [CellState.WALL, CellState.WALL, CellState.WALL],
             ]
         )
@@ -96,8 +62,7 @@ class TestMinesweeper(unittest.TestCase):
         print()
         np.random.seed(41)
         mf = MineField(6, 4, 4)
-        mf._mine_randomizer(0, 0)
-        mf._define_cell_values()
+        mf.new_minefield(0, 0)
 
         _W = CellState.WALL
         _M = CellState.MINE
@@ -109,11 +74,12 @@ class TestMinesweeper(unittest.TestCase):
         expected = np.array(
             [
                 [_W, _W, _W, _W, _W, _W, _W, _W],
-                [_W, _0, _1, _M, _M, _1, _0, _W],
-                [_W, _0, _2, _3, _3, _1, _0, _W],
-                [_W, _0, _1, _M, _2, _1, _0, _W],
-                [_W, _0, _1, _2, _M, _1, _0, _W],
+                [_W, _0, _0, _0, _0, _0, _0, _W],
+                [_W, _0, _1, _2, _3, _2, _1, _W],
+                [_W, _0, _1, _M, _M, _M, _1, _W],
+                [_W, _0, _1, _3, _M, _3, _1, _W],
                 [_W, _W, _W, _W, _W, _W, _W, _W],
             ]
         )
+        print(mf._mf)
         self.assert_arrays_equal(expected, mf._mf)
