@@ -53,3 +53,10 @@ class Interaction:
     x: int
     y: int
     action: UIAction
+
+
+class GameState(Enum):
+    NOT_STARTED = 0
+    PLAYING = 1
+    LOST = 2
+    WON = 3

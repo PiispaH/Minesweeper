@@ -1,9 +1,15 @@
 import typer
 from minesweeper.minesweeper import Minesweeper
+from typing import Annotated
+
 
 app = typer.Typer()
 
+width_type = Annotated[int, typer.Argument(help="The width of the grid.", min=3, max=30, clamp=True)]
+height_type = Annotated[int, typer.Argument(help="The height of the grid", min=3, max=16, clamp=True)]
+n_mines_type = Annotated[int, typer.Argument(help="The amount of mines.", min=1, max=99, clamp=True)]
+
 
 @app.command()
-def run():
-    Minesweeper(30, 16, 99)
+def run(width: width_type = 30, height: height_type = 16, n_mines: n_mines_type = 99):
+    Minesweeper(width, height, n_mines)
