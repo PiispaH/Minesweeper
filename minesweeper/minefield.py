@@ -1,26 +1,35 @@
 from itertools import product
-from typing import Set, Tuple
+from typing import Set, Tuple, Union
 import numpy as np
 from numpy.typing import NDArray
 from minesweeper.utils import CellState
 
 
 class MineField:
-    def __init__(self, width: int, height: int, n_mines: int):
+    """Represents a minesweeper grid that has does not have mines in a 3x3 area around the given point"""
+
+    def __init__(self, width: int, height: int, n_mines: int, x: int, y: int, rnd_seed: Union[int, None] = None):
         self._width = width
         self._n_mines = n_mines
         self._height = height
 
         self._mf: NDArray
 
+        if rnd_seed is not None:
+            np.random.seed(rnd_seed)
+
+        self._new_minefield(x, y)
+
     def get_minefield(self) -> NDArray:
-        return self._mf
+        return self._mf[:]
 
-    def _in_bounds_check(self, x: int, y: int):
-        if x < 0 or y < 0 or y >= self._height or x >= self._width:
-            raise ValueError(f"Out of bounds: x={x}, y={y}.")
+    def print_mf(self):
+        print()
+        with np.printoptions(linewidth=200):
+            print(self._mf)
+        print()
 
-    def new_minefield(self, x: int, y: int):
+    def _new_minefield(self, x: int, y: int):
         self._in_bounds_check(x, y)
         self._init_grid()
         self._mine_randomizer(x, y)
@@ -34,20 +43,8 @@ class MineField:
         self._mf = np.insert(self._mf, self._height, CellState.WALL, axis=0)  # type: ignore
         self._mf = np.insert(self._mf, 0, CellState.WALL, axis=0)  # type: ignore
 
-    def _cell_at(self, x: int, y: int) -> CellState:
-        """Returns the cell at the given coordinates"""
-        self._in_bounds_check(x, y)
-        return self._mf[y + 1][x + 1]
-
-    def print_mf(self):
-        print()
-        with np.printoptions(linewidth=200):
-            print(self._mf)
-        print()
-
     def _mine_randomizer(self, x_: int, y_: int):
         """Inserts mines randomly to the minefield."""
-        self._in_bounds_check(x_, y_)
 
         valid_coordinates = [(x, y) for x, y in product(range(self._width), range(self._height))]
 
@@ -71,6 +68,15 @@ class MineField:
                 if self._cell_at(i, j) != CellState.MINE:
                     mines_near = len(self._get_nbr_inds_of_types(i, j, CellState.MINE))
                     self._mf[j + 1][i + 1] = CellState.by_mine_amount(mines_near)
+
+    def _cell_at(self, x: int, y: int) -> CellState:
+        """Returns the cell at the given coordinates"""
+        self._in_bounds_check(x, y)
+        return self._mf[y + 1][x + 1]
+
+    def _in_bounds_check(self, x: int, y: int):
+        if x < 0 or y < 0 or y >= self._height or x >= self._width:
+            raise ValueError(f"Out of bounds: x={x}, y={y}.")
 
     def _get_nbr_inds_of_types(self, x: int, y: int, celltype: CellState) -> Set[Tuple[int, int]]:
         """Returns a set of the neighbouring indices with the given celltype"""

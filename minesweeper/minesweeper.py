@@ -1,89 +1,48 @@
-from typing import Callable, Set, Tuple, Union
+from typing import Set, Tuple, Union
+import os
 import numpy as np
 from itertools import product
 from numpy.typing import NDArray
 from minesweeper.minefield import MineField, CellState
-from minesweeper.minesweeper_ui import MinesweeperUI, UIAction
-from minesweeper.utils import GameState
+from minesweeper.minesweeper_ui import MinesweeperUI
+from minesweeper.utils import GameState, Interaction, UIAction
 
 type index_set = Set[Tuple[int, int]]
 
 
-class Minesweeper:
-    def __init__(self, width: int, height: int, n_mines: int, headless: bool = False):
+class MinesweeperBase:
+    """Base class for the minesweeper game"""
 
-        self._mf = MineField(width, height, n_mines)
-        self._ui = MinesweeperUI(width, height)
+    def __init__(self, width: int, height: int, n_mines: int, rnd_seed: Union[int, None] = None):
+
+        self._mf: MineField
+
+        self._width = width
+        self._height = height
+        self._n_mines = n_mines
 
         self._unopened = np.ones((height, width), dtype=bool)
         self._flagged = np.zeros((height, width), dtype=bool)
 
         self._gamestate = GameState.NOT_STARTED
 
-        self.run: Callable[[], None]
-        if headless:
-            self._run_headless()
-        else:
-            self._run_with_ui()
+        self._rnd_seed = rnd_seed
 
-    def _run_with_ui(self):
-        """Runs the game with UI"""
-        ui_grid = np.array(
-            [[CellState.UNOPENED for x in range(self._mf._width)] for y in range(self._mf._height)],
-            dtype=object,
-        )
-        minefield = None
-
-        while True:
-            act = self._ui.draw_frame(ui_grid, self._gamestate)
-            if act:
-                if act.action == UIAction.EXIT:
-                    exit()
-
-                if act.action == UIAction.OPEN and self._gamestate != GameState.LOST:
-                    all_unnopened = not np.logical_not(self._unopened).any()
-
-                    if self._gamestate == GameState.NOT_STARTED and all_unnopened:
-                        self._gamestate = GameState.PLAYING
-                        self._mf.new_minefield(act.x, act.y)
-                        minefield = self._get_grid()
-                    elif self._flagged[act.y][act.x]:
-                        continue
-
-                    self._reveal(act.x, act.y)
-                    if self._mf._cell_at(act.x, act.y) == CellState.CELL_0:
-                        _ = self._reveal_3x3(act.x, act.y)
-                    self._check_win()
-
-                elif act.action == UIAction.FLAG and self._gamestate == GameState.PLAYING:
-                    if self._unopened[act.y][act.x]:
-                        self._toggle_flag(act.x, act.y)
-
-                elif act.action == UIAction.NEW_GAME:
-                    self._new_game()
-
-                ui_grid = np.where(self._unopened, CellState.UNOPENED, minefield)  # type: ignore
-                ui_grid = np.where(self._flagged, CellState.FLAG, ui_grid)  # type: ignore
-
-    def _run_headless(self):
-        """Runs the game without UI"""
-        raise NotImplementedError
-
-    def _new_game(self):
-        self._gamestate = GameState.NOT_STARTED
-        self._unopened.fill(True)
-        self._flagged.fill(False)
-        ui_grid = np.array(
-            [[CellState.UNOPENED for x in range(self._mf._width)] for y in range(self._mf._height)],
-            dtype=object,
-        )
-        return ui_grid
+    def _new_minefield(self, x: int, y: int):
+        self._mf = MineField(self._width, self._height, self._n_mines, x, y, rnd_seed=self._rnd_seed)
+        if self._rnd_seed is not None:
+            self._rnd_seed += 1
 
     def _get_grid(self) -> NDArray:
         """Gives the minefield without the walls"""
         grid = self._mf.get_minefield()
         grid = grid[1:-1, 1:-1]
         return grid
+
+    def _open_cell(self, x: int, y: int):
+        self._reveal(x, y)
+        if self._mf._cell_at(x, y) == CellState.CELL_0:
+            _ = self._reveal_3x3(x, y)
 
     def _reveal(self, x: int, y: int):
         """Reveal single cell"""
@@ -99,10 +58,10 @@ class Minesweeper:
         if checked is None:
             checked = set()
 
-        for i, j in self.nbr_inds(x, y):
+        for i, j in self._nbr_inds(x, y):
             self._unopened[j][i] = False
 
-        # Hop to neighboring zero cell that hasn't been checked yet
+        # Hop to neighbouring zero cell that hasn't been checked yet
         for i, j in self._mf._get_nbr_inds_of_types(x, y, CellState.CELL_0):
             if (i, j) not in checked:
                 checked.add((i, j))
@@ -114,20 +73,128 @@ class Minesweeper:
         """Toggles the flag state of an unopened cell"""
         self._flagged[y][x] = not self._flagged[y][x]
 
-    def nbr_inds(self, x: int, y: int):
+    def _nbr_inds(self, x: int, y: int):
         """Returns the indices of the non-wall neighbours of the given cell"""
         res = set()
         for dx, dy in product((-1, 0, 1), repeat=2):
             i = x + dx
             j = y + dy
 
-            if -1 in (i, j) or i == self._mf._width or j == self._mf._height:
+            if -1 in (i, j) or i == self._width or j == self._height:
                 continue
             else:
                 res.add((i, j))
         return res
 
     def _check_win(self):
-        if len(np.transpose((self._unopened).nonzero())) == self._mf._n_mines:
+        if len(np.transpose((self._unopened).nonzero())) == self._n_mines:
             self._gamestate = GameState.WON
             self._flagged[:] = self._unopened[:]
+
+
+class MinesweeperHeadless(MinesweeperBase):
+    """Runs minesweeper without an user interface"""
+
+    def make_interaction(self, act: Interaction) -> Tuple[NDArray, NDArray, NDArray]:
+        """Takes the given action and returns the minefield state"""
+
+        if act.action == UIAction.OPEN and self._gamestate in {GameState.PLAYING, GameState.NOT_STARTED}:
+            all_unnopened = not np.logical_not(self._unopened).any()
+
+            if self._gamestate == GameState.NOT_STARTED and all_unnopened:
+                self._gamestate = GameState.PLAYING
+                self._new_minefield(act.x, act.y)
+
+            if not self._flagged[act.y][act.x]:
+                self._open_cell(act.x, act.y)
+
+            self._check_win()
+
+        elif act.action == UIAction.FLAG and self._gamestate == GameState.PLAYING:
+            if self._unopened[act.y][act.x]:
+                self._toggle_flag(act.x, act.y)
+
+        elif act.action == UIAction.NEW_GAME:
+            self._gamestate = GameState.NOT_STARTED
+            self._unopened.fill(True)
+            self._flagged.fill(False)
+
+        return self._get_grid(), self._unopened, self._flagged
+
+
+class Minesweeper(MinesweeperBase):
+    """Runs minesweeper with an user interface"""
+
+    def __init__(self, width: int, height: int, n_mines: int, rnd_seed: int | None = None, save_path=""):
+        super().__init__(width, height, n_mines, rnd_seed)
+
+        self._ui = MinesweeperUI(width, height, n_mines)
+        self._ui_grid = None
+
+        self._save_path = save_path
+
+    def _init_ui_grid(self) -> NDArray:
+        return np.array(
+            [[CellState.UNOPENED for x in range(self._width)] for y in range(self._height)],
+            dtype=object,
+        )
+
+    def _save(self, act: Interaction, minefield: Union[NDArray, None] = None):
+        """Saves the grid state for testing reasons"""
+        if not self._save_path:
+            return
+
+        if minefield is not None:
+            with open(os.path.join(self._save_path, f"minefield.npy"), "ab") as f:
+                np.save(f, minefield)
+            return
+
+        with open(os.path.join(self._save_path, f"acts.txt"), "a") as f:
+            f.write(";".join([str(act.x), str(act.y), str(act.action.value)]) + "\n")
+
+        with open(os.path.join(self._save_path, f"states.npy"), "ab") as f:
+            np.save(f, self._unopened)
+            np.save(f, self._flagged)
+
+    def run(self):
+        self._ui_grid = self._init_ui_grid()
+        minefield = None
+
+        while True:
+            act = self._ui.draw_frame(self._ui_grid, self._gamestate)
+            if act:
+                if act.action == UIAction.EXIT:
+                    exit()
+
+                if act.action == UIAction.OPEN and self._gamestate != GameState.LOST:
+                    all_unnopened = not np.logical_not(self._unopened).any()
+
+                    if self._gamestate == GameState.NOT_STARTED and all_unnopened:
+                        self._gamestate = GameState.PLAYING
+                        self._new_minefield(act.x, act.y)
+                        minefield = self._get_grid()
+                        self._save(act, minefield)
+
+                    elif self._flagged[act.y][act.x]:
+                        continue
+
+                    self._open_cell(act.x, act.y)
+                    self._check_win()
+
+                elif act.action == UIAction.FLAG and self._gamestate == GameState.PLAYING:
+                    if self._unopened[act.y][act.x]:
+                        self._toggle_flag(act.x, act.y)
+
+                elif act.action == UIAction.NEW_GAME:
+                    self._gamestate = GameState.NOT_STARTED
+                    self._ui_grid = self._init_ui_grid()
+                    self._unopened.fill(True)
+                    self._flagged.fill(False)
+
+                else:
+                    continue
+
+                self._save(act)
+
+                self._ui_grid = np.where(self._unopened, CellState.UNOPENED, minefield)  # type: ignore
+                self._ui_grid = np.where(self._flagged, CellState.FLAG, self._ui_grid)  # type: ignore

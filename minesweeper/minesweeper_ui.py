@@ -8,7 +8,7 @@ import pygame
 
 
 class MinesweeperUI:
-    def __init__(self, width: int, height: int):
+    def __init__(self, width: int, height: int, n_mines: int):
         pygame.init()
         pygame.display.set_caption("Minesweeper")
         files = sorted(os.listdir(os.path.join("images")))

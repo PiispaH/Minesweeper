@@ -45,6 +45,7 @@ class UIAction(Enum):
     FLAG = 1
     EXIT = 2
     NEW_GAME = 3
+    SAVE = 4
 
 
 @dataclass

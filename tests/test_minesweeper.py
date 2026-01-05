@@ -1,24 +1,13 @@
 import unittest
 import numpy as np
+import os
 from numpy.typing import NDArray
-from minesweeper.minefield import CellState, MineField
+from minesweeper.minesweeper import MinesweeperHeadless
+from minesweeper.utils import Interaction, UIAction
 
 
-class TestCellState(unittest.TestCase):
-    def test_cellstate(self):
-        self.assertEqual(CellState.CELL_0, CellState.by_mine_amount(0))
-        self.assertEqual(CellState.CELL_1, CellState.by_mine_amount(1))
-        self.assertEqual(CellState.CELL_2, CellState.by_mine_amount(2))
-        self.assertEqual(CellState.CELL_3, CellState.by_mine_amount(3))
-        self.assertEqual(CellState.CELL_4, CellState.by_mine_amount(4))
-        self.assertEqual(CellState.CELL_5, CellState.by_mine_amount(5))
-        self.assertEqual(CellState.CELL_6, CellState.by_mine_amount(6))
-        self.assertEqual(CellState.CELL_7, CellState.by_mine_amount(7))
-        self.assertEqual(CellState.CELL_8, CellState.by_mine_amount(8))
-        self.assertRaises(ValueError, lambda: CellState.by_mine_amount(9))
-
-
-class TestMinesweeper(unittest.TestCase):
+class TestMinesweeperHeadlessGameplay(unittest.TestCase):
+    """Tests that the headless mode gameplay is consistent with minesweeper rules"""
 
     def assert_arrays_equal(self, expected: NDArray, result: NDArray):
         self.assertEqual(expected.shape, result.shape)
@@ -26,60 +15,53 @@ class TestMinesweeper(unittest.TestCase):
             for i, value in enumerate(row):
                 self.assertEqual(value, result[j][i])
 
-    def test_init_mf(self):
-        np.random.seed(42)
+    def _get_minefield_from_file(self, folder_path: str, i: int):
+        with open(os.path.join(folder_path, "minefield.npy"), "rb") as f:
+            for _ in range(i):
+                _ = np.load(f, allow_pickle=True)
+            return np.load(f, allow_pickle=True)
 
-        mf = MineField(4, 5, 8)
+    def _run_test_folder(self, folder_path: str):
 
-        self.assertRaises(AttributeError, lambda: mf._mf)
+        mf = MinesweeperHeadless(30, 16, 99, rnd_seed=42)
 
-    def test_neighbours(self):
-        np.random.seed(41)
-        mf = MineField(6, 4, 4)
-        mf.new_minefield(0, 0)
+        acts = []
+        with open(os.path.join(folder_path, "acts.txt"), "r") as f:
+            for row in f:
+                x, y, act = row.split(";")
+                acts.append(Interaction(int(x), int(y), UIAction(int(act.strip()))))
 
-        nbs = mf._neighbours(0, 0)
-        res = np.array(
-            [
-                [CellState.WALL, CellState.WALL, CellState.WALL],
-                [CellState.WALL, CellState.CELL_0, CellState.CELL_0],
-                [CellState.WALL, CellState.CELL_0, CellState.CELL_1],
-            ]
-        )
-        self.assert_arrays_equal(nbs, res)
+        exp_minefield = self._get_minefield_from_file(folder_path, 0)
+        game_num = 0
+        with open(os.path.join(folder_path, f"states.npy"), "rb") as f:
+            for i, act in enumerate(acts):
 
-        nbs = mf._neighbours(5, 3)
-        res = np.array(
-            [
-                [CellState.MINE, CellState.CELL_1, CellState.WALL],
-                [CellState.CELL_3, CellState.CELL_1, CellState.WALL],
-                [CellState.WALL, CellState.WALL, CellState.WALL],
-            ]
-        )
-        self.assert_arrays_equal(nbs, res)
+                exp_unnopened = np.load(f, allow_pickle=True)
+                exp_flags = np.load(f, allow_pickle=True)
 
-    def test_define_cell_values(self):
+                grid, unnopened, flags = mf.make_interaction(act)
+
+                try:
+                    self.assert_arrays_equal(exp_minefield, grid)
+                    self.assert_arrays_equal(exp_unnopened, unnopened)
+                    self.assert_arrays_equal(exp_flags, flags)
+                except AssertionError as e:
+                    e.args = (*e.args, f"Action number: {i}, act = {act}")
+                    raise e
+
+                if act.action == UIAction.NEW_GAME:
+                    if i + 1 == len(acts):
+                        # If this was the last action
+                        continue
+                    game_num += 1
+                    exp_minefield = self._get_minefield_from_file(folder_path, game_num)
+
+    def test_gameplay_with_headless(self):
+        test_games = os.listdir(os.path.join("tests", "resources"))
         print()
-        np.random.seed(41)
-        mf = MineField(6, 4, 4)
-        mf.new_minefield(0, 0)
-
-        _W = CellState.WALL
-        _M = CellState.MINE
-        _0 = CellState.CELL_0
-        _1 = CellState.CELL_1
-        _2 = CellState.CELL_2
-        _3 = CellState.CELL_3
-
-        expected = np.array(
-            [
-                [_W, _W, _W, _W, _W, _W, _W, _W],
-                [_W, _0, _0, _0, _0, _0, _0, _W],
-                [_W, _0, _1, _2, _3, _2, _1, _W],
-                [_W, _0, _1, _M, _M, _M, _1, _W],
-                [_W, _0, _1, _3, _M, _3, _1, _W],
-                [_W, _W, _W, _W, _W, _W, _W, _W],
-            ]
-        )
-        print(mf._mf)
-        self.assert_arrays_equal(expected, mf._mf)
+        for dir in test_games:
+            if not dir.startswith("session"):
+                continue
+            print(f"dir: {dir}")
+            path = os.path.join("tests", "resources", dir)
+            self._run_test_folder(path)
