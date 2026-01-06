@@ -2,8 +2,8 @@ import os
 import unittest
 import numpy as np
 from numpy.typing import NDArray
-from minesweeper.minesweeper import MinesweeperHeadless
-from minesweeper.utils import Interaction, Action, GameState
+from src.minesweeper.minesweeper_ import MinesweeperHeadless
+from src.minesweeper.utils import Action, GameState, Interaction
 
 
 class TestMinesweeperHeadlessGameplay(unittest.TestCase):
@@ -22,7 +22,6 @@ class TestMinesweeperHeadlessGameplay(unittest.TestCase):
             return np.load(f, allow_pickle=True)
 
     def _run_test_folder(self, folder_path: str):
-
         mf = MinesweeperHeadless(30, 16, 99, rnd_seed=42)
 
         acts = []
@@ -57,6 +56,8 @@ class TestMinesweeperHeadlessGameplay(unittest.TestCase):
                     exp_minefield = self._get_minefield_from_file(folder_path, game_num)
 
     def test_gameplay_with_headless(self):
+        """Replays games that atleast looked to follow all of the proper rules when they were played..."""
+        # self._run_test_folder(os.path.join("tests", "resources", "session_0"))
         test_games = os.listdir(os.path.join("tests", "resources"))
         print()
         for dir in test_games:
@@ -67,6 +68,7 @@ class TestMinesweeperHeadlessGameplay(unittest.TestCase):
             self._run_test_folder(path)
 
     def test_loss_condition(self):
+        """Test that game is lost correctly"""
         mf = MinesweeperHeadless(3, 3, 7, rnd_seed=42)
         self.assertEqual(mf._gamestate, GameState.NOT_STARTED)
 
@@ -77,6 +79,7 @@ class TestMinesweeperHeadlessGameplay(unittest.TestCase):
         self.assertEqual(state, GameState.LOST)
 
     def test_win_condition(self):
+        """Test that game is won correctly"""
         mf = MinesweeperHeadless(3, 3, 7, rnd_seed=42)
         self.assertEqual(mf._gamestate, GameState.NOT_STARTED)
 
@@ -88,8 +91,9 @@ class TestMinesweeperHeadlessGameplay(unittest.TestCase):
 
 
 class TestMinesweeperHeadless(unittest.TestCase):
-    def test_clamp_grid_specs(self):
+    """Tests for the MinesweeperHeadless class"""
 
+    def test_clamp_grid_specs(self):
         width = height = 9
 
         ms = MinesweeperHeadless(width, height, width * height)

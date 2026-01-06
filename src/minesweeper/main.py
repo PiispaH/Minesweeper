@@ -1,6 +1,6 @@
 from typing import Annotated
 import typer
-from minesweeper.minesweeper import Minesweeper
+from .minesweeper_ import Minesweeper
 
 app = typer.Typer()
 

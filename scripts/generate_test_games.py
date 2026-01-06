@@ -1,5 +1,11 @@
+#!/usr/bin/env python3
+
 import os
-from minesweeper.minesweeper import Minesweeper
+import sys
+
+sys.path.append(str(os.path.join(os.path.abspath(os.curdir), "src")))
+
+from minesweeper import Minesweeper  # type: ignore
 
 
 def main():

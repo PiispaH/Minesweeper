@@ -2,7 +2,7 @@ from itertools import product
 from typing import Set, Tuple, Union
 import numpy as np
 from numpy.typing import NDArray
-from minesweeper.utils import CellState
+from .utils import CellState
 
 
 class MineField:

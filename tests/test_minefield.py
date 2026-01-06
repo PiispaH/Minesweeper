@@ -1,8 +1,7 @@
 import unittest
 import numpy as np
 from numpy.typing import NDArray
-from minesweeper.minefield import CellState, MineField
-
+from src.minesweeper.minefield import CellState, MineField
 
 _W = CellState.WALL
 _M = CellState.MINE
@@ -18,6 +17,8 @@ _8 = CellState.CELL_8
 
 
 class TestCellState(unittest.TestCase):
+    """Tests for the CellState class"""
+
     def test_cellstate(self):
         self.assertEqual(_0, CellState.by_mine_amount(0))
         self.assertEqual(_1, CellState.by_mine_amount(1))
@@ -32,6 +33,7 @@ class TestCellState(unittest.TestCase):
 
 
 class TestMinesField(unittest.TestCase):
+    """Tests for the MineField class"""
 
     def assert_arrays_equal(self, expected: NDArray, result: NDArray):
         self.assertEqual(expected.shape, result.shape)

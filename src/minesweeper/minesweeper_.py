@@ -3,9 +3,9 @@ import os
 from typing import Set, Tuple, Union
 import numpy as np
 from numpy.typing import NDArray
-from minesweeper.minefield import CellState, MineField
-from minesweeper.minesweeper_ui import MinesweeperUI
-from minesweeper.utils import GameState, Interaction, Action
+from .minefield import CellState, MineField
+from .minesweeper_ui import MinesweeperUI
+from .utils import Action, GameState, Interaction
 
 type index_set = Set[Tuple[int, int]]
 
@@ -14,6 +14,13 @@ class MinesweeperBase:
     """Base class for the minesweeper game"""
 
     def __init__(self, width: int, height: int, n_mines: int, rnd_seed: Union[int, None] = None):
+        """
+        Args:
+            width: The width of the minefield.
+            height: The height of the minefield.
+            n_mines: The amount of mines in the minefield.
+            rnd_seed: An initial starting point for the seed used in random number generators.
+        """
 
         self._mf: MineField
 
@@ -47,6 +54,12 @@ class MinesweeperBase:
         grid = self._mf.get_minefield()
         grid = grid[1:-1, 1:-1]
         return grid
+
+    def _new_game(self):
+        self._gamestate = GameState.NOT_STARTED
+        self._mines_left = self._n_mines
+        self._unopened.fill(True)
+        self._flagged.fill(False)
 
     def _open_cell(self, x: int, y: int):
         self._reveal(x, y)
@@ -132,9 +145,7 @@ class MinesweeperHeadless(MinesweeperBase):
                 self._toggle_flag(act.x, act.y)
 
         elif act.action == Action.NEW_GAME:
-            self._gamestate = GameState.NOT_STARTED
-            self._unopened.fill(True)
-            self._flagged.fill(False)
+            self._new_game()
 
         return self._get_grid(), self._unopened, self._flagged, self._gamestate
 
@@ -143,12 +154,24 @@ class Minesweeper(MinesweeperBase):
     """Runs minesweeper with an user interface"""
 
     def __init__(self, width: int, height: int, n_mines: int, rnd_seed: int | None = None, save_path=""):
+        """
+        Args:
+            width: The width of the minefield.
+            height: The height of the minefield.
+            n_mines: The amount of mines in the minefield.
+            rnd_seed: An initial starting point for the seed used in random number generators.
+            save_path: Path to a folder, where gamedata will be stored. If not provided, nothing is saved.
+        """
         super().__init__(width, height, n_mines, rnd_seed)
 
         self._ui = MinesweeperUI(width, height)
         self._ui_grid = None
 
         self._save_path = save_path
+
+    def _new_game(self):
+        super()._new_game()
+        self._ui_grid = self._init_ui_grid()
 
     def _init_ui_grid(self) -> NDArray:
         return np.array(
@@ -174,6 +197,8 @@ class Minesweeper(MinesweeperBase):
             np.save(f, self._flagged)
 
     def run(self):
+        """Starts the game"""
+
         self._ui_grid = self._init_ui_grid()
         minefield = None
 
@@ -205,10 +230,7 @@ class Minesweeper(MinesweeperBase):
                         self._toggle_flag(act.x, act.y)
 
                 elif act.action == Action.NEW_GAME:
-                    self._gamestate = GameState.NOT_STARTED
-                    self._ui_grid = self._init_ui_grid()
-                    self._unopened.fill(True)
-                    self._flagged.fill(False)
+                    self._new_game()
 
                 else:
                     continue

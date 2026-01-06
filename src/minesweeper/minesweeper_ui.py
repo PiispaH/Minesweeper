@@ -1,7 +1,7 @@
 import os
 from typing import Tuple, Union
 from numpy.typing import NDArray
-from minesweeper.utils import GameState, Interaction, Action
+from .utils import Action, GameState, Interaction
 
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"  # Silence the stupid pygame import print...
 import pygame
@@ -11,8 +11,10 @@ class MinesweeperUI:
     def __init__(self, width: int, height: int):
         pygame.init()
         pygame.display.set_caption("Minesweeper")
-        files = sorted(os.listdir(os.path.join("images")))
-        self._images = {name.split(".")[0]: pygame.image.load(os.path.join("images", name)) for name in files}
+
+        image_dir = os.path.join(os.path.dirname(__file__), "images")
+        files = sorted(os.listdir(image_dir))
+        self._images = {name.split(".")[0]: pygame.image.load(os.path.join(image_dir, name)) for name in files}
 
         self._font_small = pygame.font.SysFont("Nunito", 30)
         self._font_big = pygame.font.SysFont("Nunito", 100)
