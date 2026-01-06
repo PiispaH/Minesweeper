@@ -1,5 +1,5 @@
-from minesweeper.minesweeper import Minesweeper
 import os
+from minesweeper.minesweeper import Minesweeper
 
 
 def main():

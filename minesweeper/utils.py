@@ -22,7 +22,7 @@ class CellState(Enum):
 
     def __repr__(self) -> str:
         if self == CellState.MINE:
-            s = "B"
+            s = "M"
         elif self == CellState.FLAG:
             s = "F"
         else:
@@ -40,7 +40,7 @@ class CellState(Enum):
         return CellState(f"square open{value}")
 
 
-class UIAction(Enum):
+class Action(Enum):
     OPEN = 0
     FLAG = 1
     EXIT = 2
@@ -52,7 +52,7 @@ class UIAction(Enum):
 class Interaction:
     x: int
     y: int
-    action: UIAction
+    action: Action
 
 
 class GameState(Enum):

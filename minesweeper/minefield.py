@@ -43,23 +43,32 @@ class MineField:
         self._mf = np.insert(self._mf, self._height, CellState.WALL, axis=0)  # type: ignore
         self._mf = np.insert(self._mf, 0, CellState.WALL, axis=0)  # type: ignore
 
-    def _mine_randomizer(self, x_: int, y_: int):
+    def _mine_randomizer(self, x: int, y: int):
         """Inserts mines randomly to the minefield."""
 
-        valid_coordinates = [(x, y) for x, y in product(range(self._width), range(self._height))]
+        valid_coordinates = [(i, j) for i, j in product(range(self._width), range(self._height))]
 
         # Keep a 3x3 clear around the start
         for dx, dy in product((-1, 0, 1), repeat=2):
-            i = x_ + dx
-            j = y_ + dy
+            i = x + dx
+            j = y + dy
 
             if -1 in (i, j) or i == self._width or j == self._height:
                 continue
             else:
                 valid_coordinates.remove((i, j))
 
-        for ind in np.random.choice(len(valid_coordinates), self._n_mines, replace=False):
+        n_nbrs = len(self._get_nbr_inds_of_types(x, y, CellState.UNOPENED))
+        far_mines = min(self._n_mines, self._width * self._height - n_nbrs - 1)
+        near_mines = min(self._n_mines - far_mines, n_nbrs)
+        for ind in np.random.choice(len(valid_coordinates), far_mines, replace=False):
             self._mf[valid_coordinates[ind][1] + 1][valid_coordinates[ind][0] + 1] = CellState.MINE
+
+        # If too many mines to keep 3x3 empty, add the rest of the mines to the neighours
+        if near_mines:
+            nbrs = list(self._get_nbr_inds_of_types(x, y, CellState.UNOPENED))
+            for ind in np.random.choice(len(nbrs), near_mines, replace=False):
+                self._mf[nbrs[ind][1] + 1][nbrs[ind][0] + 1] = CellState.MINE
 
     def _define_cell_values(self):
         """Defines the correct state for each cell"""

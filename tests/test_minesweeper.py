@@ -1,9 +1,9 @@
+import os
 import unittest
 import numpy as np
-import os
 from numpy.typing import NDArray
 from minesweeper.minesweeper import MinesweeperHeadless
-from minesweeper.utils import Interaction, UIAction
+from minesweeper.utils import Interaction, Action, GameState
 
 
 class TestMinesweeperHeadlessGameplay(unittest.TestCase):
@@ -29,7 +29,7 @@ class TestMinesweeperHeadlessGameplay(unittest.TestCase):
         with open(os.path.join(folder_path, "acts.txt"), "r") as f:
             for row in f:
                 x, y, act = row.split(";")
-                acts.append(Interaction(int(x), int(y), UIAction(int(act.strip()))))
+                acts.append(Interaction(int(x), int(y), Action(int(act.strip()))))
 
         exp_minefield = self._get_minefield_from_file(folder_path, 0)
         game_num = 0
@@ -39,7 +39,7 @@ class TestMinesweeperHeadlessGameplay(unittest.TestCase):
                 exp_unnopened = np.load(f, allow_pickle=True)
                 exp_flags = np.load(f, allow_pickle=True)
 
-                grid, unnopened, flags = mf.make_interaction(act)
+                grid, unnopened, flags, _ = mf.make_interaction(act)
 
                 try:
                     self.assert_arrays_equal(exp_minefield, grid)
@@ -49,7 +49,7 @@ class TestMinesweeperHeadlessGameplay(unittest.TestCase):
                     e.args = (*e.args, f"Action number: {i}, act = {act}")
                     raise e
 
-                if act.action == UIAction.NEW_GAME:
+                if act.action == Action.NEW_GAME:
                     if i + 1 == len(acts):
                         # If this was the last action
                         continue
@@ -65,3 +65,44 @@ class TestMinesweeperHeadlessGameplay(unittest.TestCase):
             print(f"dir: {dir}")
             path = os.path.join("tests", "resources", dir)
             self._run_test_folder(path)
+
+    def test_loss_condition(self):
+        mf = MinesweeperHeadless(3, 3, 7, rnd_seed=42)
+        self.assertEqual(mf._gamestate, GameState.NOT_STARTED)
+
+        *_, state = mf.make_interaction(Interaction(0, 0, Action.OPEN))
+        self.assertEqual(state, GameState.PLAYING)
+
+        *_, state = mf.make_interaction(Interaction(1, 1, Action.OPEN))
+        self.assertEqual(state, GameState.LOST)
+
+    def test_win_condition(self):
+        mf = MinesweeperHeadless(3, 3, 7, rnd_seed=42)
+        self.assertEqual(mf._gamestate, GameState.NOT_STARTED)
+
+        *_, state = mf.make_interaction(Interaction(0, 0, Action.OPEN))
+        self.assertEqual(state, GameState.PLAYING)
+
+        *_, state = mf.make_interaction(Interaction(1, 0, Action.OPEN))
+        self.assertEqual(state, GameState.WON)
+
+
+class TestMinesweeperHeadless(unittest.TestCase):
+    def test_clamp_grid_specs(self):
+
+        width = height = 9
+
+        ms = MinesweeperHeadless(width, height, width * height)
+        self.assertEqual(ms._width, width)
+        self.assertEqual(ms._height, height)
+        self.assertEqual(ms._n_mines, width * height - 1)
+
+        ms = MinesweeperHeadless(width, height, 0)
+        self.assertEqual(ms._width, width)
+        self.assertEqual(ms._height, height)
+        self.assertEqual(ms._n_mines, 0)
+
+        ms = MinesweeperHeadless(width, height, 10)
+        self.assertEqual(ms._width, width)
+        self.assertEqual(ms._height, height)
+        self.assertEqual(ms._n_mines, 10)
