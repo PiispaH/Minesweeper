@@ -38,12 +38,12 @@ class TestMinesweeperHeadlessGameplay(unittest.TestCase):
                 exp_unnopened = np.load(f, allow_pickle=True)
                 exp_flags = np.load(f, allow_pickle=True)
 
-                grid, unnopened, flags, _ = mf.make_interaction(act)
+                mf.make_interaction(act)
 
                 try:
-                    self.assert_arrays_equal(exp_minefield, grid)
-                    self.assert_arrays_equal(exp_unnopened, unnopened)
-                    self.assert_arrays_equal(exp_flags, flags)
+                    self.assert_arrays_equal(exp_minefield, mf.get_grid())
+                    self.assert_arrays_equal(exp_unnopened, mf._unopened)
+                    self.assert_arrays_equal(exp_flags, mf._flagged)
                 except AssertionError as e:
                     e.args = (*e.args, f"Action number: {i}, act = {act}")
                     raise e
@@ -70,24 +70,24 @@ class TestMinesweeperHeadlessGameplay(unittest.TestCase):
     def test_loss_condition(self):
         """Test that game is lost correctly"""
         mf = MinesweeperHeadless(3, 3, 7, rnd_seed=42)
-        self.assertEqual(mf._gamestate, GameState.NOT_STARTED)
+        self.assertEqual(mf.gamestate, GameState.NOT_STARTED)
 
-        *_, state = mf.make_interaction(Interaction(0, 0, Action.OPEN))
-        self.assertEqual(state, GameState.PLAYING)
+        mf.make_interaction(Interaction(0, 0, Action.OPEN))
+        self.assertEqual(mf.gamestate, GameState.PLAYING)
 
-        *_, state = mf.make_interaction(Interaction(1, 1, Action.OPEN))
-        self.assertEqual(state, GameState.LOST)
+        mf.make_interaction(Interaction(1, 1, Action.OPEN))
+        self.assertEqual(mf.gamestate, GameState.LOST)
 
     def test_win_condition(self):
         """Test that game is won correctly"""
         mf = MinesweeperHeadless(3, 3, 7, rnd_seed=42)
-        self.assertEqual(mf._gamestate, GameState.NOT_STARTED)
+        self.assertEqual(mf.gamestate, GameState.NOT_STARTED)
 
-        *_, state = mf.make_interaction(Interaction(0, 0, Action.OPEN))
-        self.assertEqual(state, GameState.PLAYING)
+        mf.make_interaction(Interaction(0, 0, Action.OPEN))
+        self.assertEqual(mf.gamestate, GameState.PLAYING)
 
-        *_, state = mf.make_interaction(Interaction(1, 0, Action.OPEN))
-        self.assertEqual(state, GameState.WON)
+        mf.make_interaction(Interaction(1, 0, Action.OPEN))
+        self.assertEqual(mf.gamestate, GameState.WON)
 
 
 class TestMinesweeperHeadless(unittest.TestCase):

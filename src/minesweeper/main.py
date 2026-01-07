@@ -11,5 +11,5 @@ n_mines_type = Annotated[int, typer.Argument(help="The amount of mines.", min=0,
 
 @app.command()
 def run(width: width_type = 30, height: height_type = 16, n_mines: n_mines_type = 99):
-    ms = Minesweeper(width, height, n_mines)
+    ms = Minesweeper(width, height, n_mines, rnd_seed=42)
     ms.run()
