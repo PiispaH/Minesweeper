@@ -123,6 +123,9 @@ class MinesweeperBase:
         self._flagged[:] = self._unopened[:]
         self._mines_left = 0
 
+    def _handle_loss(self):
+        pass
+
 
 class MinesweeperHeadless(MinesweeperBase):
     """Runs minesweeper without an user interface"""
@@ -262,7 +265,7 @@ class Minesweeper(MinesweeperBase):
                 if self._check_if_won():
                     self._handle_win()
                 elif self.gamestate == GameState.LOST:
-                    pass
+                    self._handle_loss()
 
             elif act.action == Action.FLAG and self.gamestate == GameState.PLAYING:
                 if self._unopened[act.y][act.x]:
