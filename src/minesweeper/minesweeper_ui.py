@@ -55,8 +55,8 @@ class MinesweeperUI:
             (self._screen_width - mines_left_text.get_width() - self._block_size, 0),
         )
 
-    def draw_frame(self, grid: NDArray, gamestate: GameState, mines: int) -> Union[Interaction, None]:
-        """Draws one frame with the given grid"""
+    def draw_frame(self, visible_grid: NDArray, gamestate: GameState, mines: int):
+        """Draws one frame with the given parameters"""
 
         self._screen.fill((10, 0, 0))
         grid_background = (self._block_size, 2 * self._block_size, *self._grid_size_px)
@@ -71,16 +71,20 @@ class MinesweeperUI:
             lost_text = self._font_big.render("WIN", True, (19, 161, 69))
             self._screen.blit(lost_text, ((self._screen_width - lost_text.get_width()) // 2, 0))
 
-        for j, row in enumerate(grid):
+        for j, row in enumerate(visible_grid):
             for i, value in enumerate(row):
                 key = value.num()
                 if key >= 9:
                     key = value
                 self._screen.blit(self._images[str(key)], ((1 + i) * self._block_size, (2 + j) * self._block_size))
 
+        pygame.display.flip()
+
+    def get_interaction(self) -> Union[Interaction, None]:
+        """Catches mouse and keyboard events and translates them into instances of the Interaction class"""
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                exit()
+            if event.type == pygame.QUIT:  # The window is closed
+                return Interaction(-1, -1, Action.EXIT)
 
             if event.type == pygame.MOUSEBUTTONUP:
                 x, y = self._map_pos_to_gridpoint(*event.pos)
@@ -98,5 +102,3 @@ class MinesweeperUI:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     return Interaction(-1, -1, Action.NEW_GAME)
-
-        pygame.display.flip()

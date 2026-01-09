@@ -1,5 +1,7 @@
 from itertools import product
 import os
+from queue import Queue
+from threading import Event, Thread
 from typing import Set, Tuple, Union
 import numpy as np
 from numpy.typing import NDArray
@@ -114,10 +116,12 @@ class MinesweeperBase:
         return res
 
     def _check_if_won(self):
-        if len(np.transpose((self._unopened).nonzero())) == self._n_mines:
-            self.gamestate = GameState.WON
-            self._flagged[:] = self._unopened[:]
-            self._mines_left = 0
+        return len(np.transpose((self._unopened).nonzero())) == self._n_mines
+
+    def _handle_win(self):
+        self.gamestate = GameState.WON
+        self._flagged[:] = self._unopened[:]
+        self._mines_left = 0
 
 
 class MinesweeperHeadless(MinesweeperBase):
@@ -138,7 +142,9 @@ class MinesweeperHeadless(MinesweeperBase):
 
             if self.gamestate == GameState.LOST:
                 return
-            self._check_if_won()
+
+            if self._check_if_won():
+                self._handle_win()
 
         elif act.action == Action.FLAG and self.gamestate == GameState.PLAYING:
             if self._unopened[act.y][act.x]:
@@ -161,11 +167,14 @@ class Minesweeper(MinesweeperBase):
             save_path: Path to a folder, where gamedata will be stored. If not provided, nothing is saved.
         """
         super().__init__(width, height, n_mines, rnd_seed)
-
-        self._ui = MinesweeperUI(width, height)
+        self._ui = None  # MinesweeperUI(width, height)
         self._ui_grid = None
+        self.fps = 1  # The mini
 
         self._save_path = save_path
+
+        self._interactions = Queue(maxsize=100)
+        self._redraw_event = Event()
 
     def _new_game(self):
         super()._new_game()
@@ -194,46 +203,80 @@ class Minesweeper(MinesweeperBase):
             np.save(f, self._unopened)
             np.save(f, self._flagged)
 
+    def _get_interaction(self):
+        """Returns the next action to take"""
+        return self._ui.get_interaction()  # type: ignore
+
     def run(self):
         """Starts the game"""
 
+        # Run the ui in a separate thread
+        t = Thread(target=self._update_ui, daemon=False)
+        t.start()
+
+        self._run()
+
+    def _update_ui(self):
+        """Updates the ui"""
+        self._ui = MinesweeperUI(self._width, self._height)
         self._ui_grid = self._init_ui_grid()
+
+        while True:
+            act = self._get_interaction()
+            if act is not None:
+                self._interactions.put(act)
+                if act.action == Action.EXIT:
+                    break
+            self._ui.draw_frame(self._ui_grid, self.gamestate, self._mines_left)
+            self._redraw_event.wait(timeout=1 / self.fps)
+            self._redraw_event.clear()
+
+    def _run(self):
+        """The gameloop"""
+
         minefield = None
 
         while True:
-            act = self._ui.draw_frame(self._ui_grid, self.gamestate, self._mines_left)
-            if act:
-                if act.action == Action.EXIT:
-                    exit()
+            act = self._interactions.get()
 
-                if act.action == Action.OPEN and self.gamestate != GameState.LOST:
-                    all_unnopened = not np.logical_not(self._unopened).any()
+            if act.action == Action.EXIT:
+                break
 
-                    if self.gamestate == GameState.NOT_STARTED and all_unnopened:
-                        self.gamestate = GameState.PLAYING
-                        self._new_minefield(act.x, act.y)
-                        minefield = self.get_grid()
-                        self._save(act, minefield)
+            if self.gamestate == GameState.LOST and act.action != Action.NEW_GAME:
+                continue
 
-                    elif self._flagged[act.y][act.x]:
-                        continue
+            if act.action == Action.OPEN and self.gamestate != GameState.LOST:
+                all_unnopened = not np.logical_not(self._unopened).any()
 
-                    self._open_cell(act.x, act.y)
+                if self.gamestate == GameState.NOT_STARTED and all_unnopened:
+                    self.gamestate = GameState.PLAYING
+                    self._new_minefield(act.x, act.y)
+                    minefield = self.get_grid()
+                    self._save(act, minefield)
 
-                    if self.gamestate != GameState.LOST:
-                        self._check_if_won()
-
-                elif act.action == Action.FLAG and self.gamestate == GameState.PLAYING:
-                    if self._unopened[act.y][act.x]:
-                        self._toggle_flag(act.x, act.y)
-
-                elif act.action == Action.NEW_GAME:
-                    self._new_game()
-
-                else:
+                elif self._flagged[act.y][act.x]:
                     continue
 
-                self._save(act)
+                self._open_cell(act.x, act.y)
 
-                self._ui_grid = np.where(self._unopened, CellState.UNOPENED, minefield)  # type: ignore
-                self._ui_grid = np.where(self._flagged, CellState.FLAG, self._ui_grid)  # type: ignore
+                if self._check_if_won():
+                    self._handle_win()
+                elif self.gamestate == GameState.LOST:
+                    pass
+
+            elif act.action == Action.FLAG and self.gamestate == GameState.PLAYING:
+                if self._unopened[act.y][act.x]:
+                    self._toggle_flag(act.x, act.y)
+
+            elif act.action == Action.NEW_GAME:
+                self._new_game()
+
+            else:
+                continue
+
+            self._save(act)
+
+            self._ui_grid = np.where(self._unopened, CellState.UNOPENED, minefield)  # type: ignore
+            self._ui_grid = np.where(self._flagged, CellState.FLAG, self._ui_grid)  # type: ignore
+
+            self._redraw_event.set()
