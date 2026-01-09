@@ -58,7 +58,7 @@ class MineField:
             else:
                 valid_coordinates.remove((i, j))
 
-        n_nbrs = len(self._get_nbr_inds_of_types(x, y, CellState.UNOPENED))
+        n_nbrs = len(self.get_nbr_inds_of_types(x, y, CellState.UNOPENED))
         far_mines = min(self._n_mines, self._width * self._height - n_nbrs - 1)
         near_mines = min(self._n_mines - far_mines, n_nbrs)
         for ind in np.random.choice(len(valid_coordinates), far_mines, replace=False):
@@ -66,7 +66,7 @@ class MineField:
 
         # If too many mines to keep 3x3 empty, add the rest of the mines to the neighours
         if near_mines:
-            nbrs = list(self._get_nbr_inds_of_types(x, y, CellState.UNOPENED))
+            nbrs = list(self.get_nbr_inds_of_types(x, y, CellState.UNOPENED))
             for ind in np.random.choice(len(nbrs), near_mines, replace=False):
                 self._mf[nbrs[ind][1] + 1][nbrs[ind][0] + 1] = CellState.MINE
 
@@ -74,11 +74,11 @@ class MineField:
         """Defines the correct state for each cell"""
         for j in range(self._height):
             for i in range(self._width):
-                if self._cell_at(i, j) != CellState.MINE:
-                    mines_near = len(self._get_nbr_inds_of_types(i, j, CellState.MINE))
+                if self.cell_at(i, j) != CellState.MINE:
+                    mines_near = len(self.get_nbr_inds_of_types(i, j, CellState.MINE))
                     self._mf[j + 1][i + 1] = CellState.by_mine_amount(mines_near)
 
-    def _cell_at(self, x: int, y: int) -> CellState:
+    def cell_at(self, x: int, y: int) -> CellState:
         """Returns the cell at the given coordinates"""
         self._in_bounds_check(x, y)
         return self._mf[y + 1][x + 1]
@@ -87,18 +87,18 @@ class MineField:
         if x < 0 or y < 0 or y >= self._height or x >= self._width:
             raise ValueError(f"Out of bounds: x={x}, y={y}.")
 
-    def _get_nbr_inds_of_types(self, x: int, y: int, celltype: CellState) -> Set[Tuple[int, int]]:
+    def get_nbr_inds_of_types(self, x: int, y: int, celltype: CellState) -> Set[Tuple[int, int]]:
         """Returns a set of the neighbouring indices with the given celltype"""
         self._in_bounds_check(x, y)
         inds: Set[Tuple[int, int]] = set()
-        for dy, row in enumerate(self._neighbours(x, y), start=-1):
+        for dy, row in enumerate(self.neighbours(x, y), start=-1):
             for dx, nbr in enumerate(row, start=-1):
                 if (dy == dx == 0) or (nbr != celltype):
                     continue
                 inds.add((x + dx, y + dy))
         return inds
 
-    def _neighbours(self, x: int, y: int) -> NDArray:
+    def neighbours(self, x: int, y: int) -> NDArray:
         """Returns a 3x3 matrix of the neighbours surrounding the given cell."""
         self._in_bounds_check(x, y)
         nbs = np.empty((3, 3), dtype=object)
@@ -109,7 +109,7 @@ class MineField:
             if -1 in (i, j) or i == self._width or j == self._height:
                 value = CellState.WALL
             else:
-                value = self._cell_at(i, j)
+                value = self.cell_at(i, j)
 
             nbs[dy + 1][dx + 1] = value
 

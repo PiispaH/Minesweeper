@@ -65,7 +65,7 @@ class MinesweeperBase:
 
     def _open_cell(self, x: int, y: int):
         self._reveal(x, y)
-        if self._mf._cell_at(x, y) == CellState.CELL_0:
+        if self._mf.cell_at(x, y) == CellState.CELL_0:
             _ = self._reveal_3x3(x, y)
 
     def _reveal(self, x: int, y: int):
@@ -74,7 +74,7 @@ class MinesweeperBase:
             return
 
         self._unopened[y][x] = False
-        if self._mf._cell_at(x, y) == CellState.MINE:
+        if self._mf.cell_at(x, y) == CellState.MINE:
             self.gamestate = GameState.LOST
 
     def _reveal_3x3(self, x: int, y: int, checked: Union[index_set, None] = None) -> index_set:
@@ -86,7 +86,7 @@ class MinesweeperBase:
             self._unopened[j][i] = False
 
         # Hop to neighbouring zero cell that hasn't been checked yet
-        for i, j in self._mf._get_nbr_inds_of_types(x, y, CellState.CELL_0):
+        for i, j in self._mf.get_nbr_inds_of_types(x, y, CellState.CELL_0):
             if (i, j) not in checked:
                 checked.add((i, j))
                 checked |= self._reveal_3x3(i, j, checked)

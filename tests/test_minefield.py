@@ -45,7 +45,7 @@ class TestMinesField(unittest.TestCase):
         np.random.seed(41)
         mf = MineField(6, 4, 4, 0, 0)
 
-        nbs = mf._neighbours(0, 0)
+        nbs = mf.neighbours(0, 0)
         res = np.array(
             [
                 [_W, _W, _W],
@@ -55,7 +55,7 @@ class TestMinesField(unittest.TestCase):
         )
         self.assert_arrays_equal(nbs, res)
 
-        nbs = mf._neighbours(5, 3)
+        nbs = mf.neighbours(5, 3)
         res = np.array(
             [
                 [_M, _1, _W],
