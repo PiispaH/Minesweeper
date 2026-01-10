@@ -261,10 +261,10 @@ class Minesweeper(MinesweeperBase):
 
                 self._open_cell(act.x, act.y)
 
-                if self._check_if_won():
-                    self._handle_win()
-                elif self.gamestate == GameState.LOST:
+                if self.gamestate == GameState.LOST:
                     self._handle_loss()
+                elif self._check_if_won():
+                    self._handle_win()
 
             elif act.action == Action.FLAG and self.gamestate == GameState.PLAYING:
                 if self._unopened[act.y][act.x]:
