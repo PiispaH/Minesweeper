@@ -176,6 +176,7 @@ class Minesweeper(MinesweeperBase):
 
         self._save_path = save_path
 
+        self._running = False
         self._interactions = Queue(maxsize=100)
         self._redraw_event = Event()
 
@@ -214,9 +215,10 @@ class Minesweeper(MinesweeperBase):
         """Starts the game"""
 
         # Run the ui in a separate thread
-        t = Thread(target=self._update_ui, daemon=False)
+        t = Thread(target=self._update_ui, daemon=True)
         t.start()
 
+        self._running = True
         self._run()
 
     def _update_ui(self):
@@ -224,12 +226,12 @@ class Minesweeper(MinesweeperBase):
         self._ui = MinesweeperUI(self._width, self._height)
         self._ui_grid = self._init_ui_grid()
 
-        while True:
+        while self._running:
             act = self._get_interaction()
             if act is not None:
-                self._interactions.put(act)
                 if act.action == Action.EXIT:
-                    break
+                    self._running = False
+                self._interactions.put(act)
             self._ui.draw_frame(self._ui_grid, self.gamestate, self._mines_left)
             self._redraw_event.wait(timeout=1 / self.fps)
             self._redraw_event.clear()
@@ -239,11 +241,8 @@ class Minesweeper(MinesweeperBase):
 
         minefield = None
 
-        while True:
+        while self._running:
             act = self._interactions.get()
-
-            if act.action == Action.EXIT:
-                break
 
             if self.gamestate == GameState.LOST and act.action != Action.NEW_GAME:
                 continue
