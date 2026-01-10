@@ -172,7 +172,7 @@ class Minesweeper(MinesweeperBase):
         super().__init__(width, height, n_mines, rnd_seed)
         self._ui = None  # MinesweeperUI(width, height)
         self._ui_grid = None
-        self.fps = 1  # The mini
+        self.fps = 60
 
         self._save_path = save_path
 
